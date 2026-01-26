@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    //owner rw, user r, group r
+    //user rw, group r, other r
     int writefile = open(argv[1], O_TRUNC | O_WRONLY | O_CREAT, 0644);
     if (writefile < 0)
     {
