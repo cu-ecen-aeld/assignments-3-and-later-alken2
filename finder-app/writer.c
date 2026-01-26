@@ -33,9 +33,19 @@ int main(int argc, char *argv[])
 
     size_t writelen = (size_t)strlen(argv[2]);
     int writesize = (int)write(writefile, argv[2], writelen);
+    write(writefile, "\r\n", 2);
+    int closefile = close(writefile);
+
     if (writesize < 0)
     {
         syslog(LOG_ERR, "Could not write to file");
+        closelog();
+        return 1;
+    }
+    
+    if (closefile < 0)
+    {
+        syslog(LOG_ERR, "Could not close file");
         closelog();
         return 1;
     }
