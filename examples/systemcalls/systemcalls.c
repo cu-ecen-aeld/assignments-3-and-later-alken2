@@ -1,4 +1,14 @@
+/*
+Author: Kenneth Alcineus
+child process logic for do_exec_redirect is partially attributed to https://stackoverflow.com/a/13784315/1446624
+*/
+
 #include "systemcalls.h"
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 /**
  * @param cmd the command to execute with system()
@@ -9,15 +19,14 @@
 */
 bool do_system(const char *cmd)
 {
+    if (cmd == NULL)
+    {
+        return false;
+    }
+    
+    int status = system(cmd);
 
-/*
- * TODO  add your code here
- *  Call the system() function with the command set in the cmd
- *   and return a boolean true if the system() call completed with success
- *   or false() if it returned a failure
-*/
-
-    return true;
+    return (status == 0);
 }
 
 /**
@@ -45,23 +54,39 @@ bool do_exec(int count, ...)
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
 
-/*
- * TODO:
- *   Execute a system command by calling fork, execv(),
- *   and wait instead of system (see LSP page 161).
- *   Use the command[0] as the full path to the command to execute
- *   (first argument to execv), and use the remaining arguments
- *   as second argument to the execv() command.
- *
-*/
+    if (command[0] == NULL)
+    {
+        return false;
+    }
+
+    pid_t fork_pid = fork();
+
+    //child process
+    if (fork_pid == 0)
+    {
+        execv(command[0], command);
+        va_end(args);
+        exit(1);
+    }
 
     va_end(args);
 
-    return true;
+    //parent process
+    if (fork_pid > 0)
+    {
+        int status = 0;
+
+        if (waitpid(fork_pid, &status, 0) == -1)
+        {
+            return false;
+        }
+
+        return (status == 0);
+    }
+
+    //error state
+    return false;
 }
 
 /**
@@ -80,20 +105,51 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
 
+    if (command[0] == NULL)
+    {
+        return false;
+    }
 
-/*
- * TODO
- *   Call execv, but first using https://stackoverflow.com/a/13784315/1446624 as a refernce,
- *   redirect standard out to a file specified by outputfile.
- *   The rest of the behaviour is same as do_exec()
- *
-*/
+    pid_t fork_pid = fork();
+
+    //child process - attributed to https://stackoverflow.com/a/13784315/1446624
+    if (fork_pid == 0)
+    {
+        int fd = open(outputfile, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+
+        if (fd < 0)
+        {
+            return false;
+        }
+
+        if (dup2(fd, 1) < 0)
+        {
+            close(fd);
+            return false;
+        }
+
+        close(fd);
+        execv(command[0], command);
+        va_end(args);
+        exit(1);
+    }
 
     va_end(args);
 
-    return true;
+    //parent process
+    if (fork_pid > 0)
+    {
+        int status = 0;
+
+        if (waitpid(fork_pid, &status, 0) == -1)
+        {
+            return false;
+        }
+
+        return (status == 0);
+    }
+
+    //error state
+    return false;
 }
