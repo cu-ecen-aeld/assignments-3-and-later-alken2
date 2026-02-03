@@ -13,7 +13,7 @@ KERNEL_VERSION=v5.15.163
 BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
 ARCH=arm64
-CROSS_COMPILE=aarch64-none-linux-gnu-
+CROSS_COMPILE=/var/home/kenny/.local/bin/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-
 
 if [ $# -lt 1 ]
 then
@@ -82,8 +82,8 @@ make -j$(nproc) ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
 make CONFIG_PREFIX=${OUTDIR}/rootfs ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
 
 echo "Library dependencies"
-${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
-${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
+${CROSS_COMPILE}readelf -a ${OUTDIR}/rootfs/bin/busybox | grep "program interpreter"
+${CROSS_COMPILE}readelf -a ${OUTDIR}/rootfs/bin/busybox | grep "Shared library"
 
 # DONE: Add library dependencies to rootfs - sed regex and library iteration logic attributed to Muthuu SVS (https://github.com/cu-ecen-aeld/assignments-3-and-later-mu2d2/blob/main/finder-app/manual-linux.sh)
 SYSROOT=$(${CROSS_COMPILE}gcc -print-sysroot)
