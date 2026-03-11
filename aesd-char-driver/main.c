@@ -111,8 +111,6 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 
     struct aesd_dev *dev_ptr = filp->private_data;
     char *temp_buffer = NULL;
-    size_t entry_offset = 0;
-    size_t bytes_num = 0;
 
     mutex_lock(&dev_ptr->mtx);
 
