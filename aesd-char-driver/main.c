@@ -72,7 +72,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
     mutex_lock(&dev_ptr->mtx);
 
     entry_ptr = aesd_circular_buffer_find_entry_offset_for_fpos(
-        &dev->buffer, *f_pos, &entry_offset);
+        &dev_ptr->circular_buffer, *f_pos, &entry_offset);
 
     if (entry_ptr == NULL)
     {
@@ -95,7 +95,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
     }
 
     mutex_unlock(&dev_ptr->mtx);
-    *fpos += bytes_num;
+    *f_pos += bytes_num;
     retval = (ssize_t)bytes_num;
     return retval;
 }
@@ -127,10 +127,10 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 
     dev_ptr->write_buffer = temp_buffer;
 
-    if (copy_from_user(dev_ptr->write_buffer + dev->write_buffer_size, buf, count))
+    if (copy_from_user(dev_ptr->write_buffer + dev_ptr->write_buffer_size, buf, count))
     {
         mutex_unlock(&dev_ptr->mtx);
-        retval = -EFAULT
+        retval = -EFAULT;
         return retval;
     }
 
