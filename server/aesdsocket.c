@@ -1,4 +1,4 @@
-// The following source code is entirely attributed to Piyush Nagpal 
+// The following source code is mostly attributed to Piyush Nagpal 
 // (https://github.com/cu-ecen-aeld/assignments-3-and-later-its-me-piyush/blob/8282ae3d95e069c22095bac6ed6600d2dc39dad7/server/aesdsocket.c)
 
 #define _GNU_SOURCE
@@ -23,7 +23,17 @@
 #include <unistd.h>
 
 #define PORT "9000"
+
+//build switch
+#define USE_AESD_CHAR_DEVICE 1
+
+//redirect writes
+#ifdef USE_AESD_CHAR_DEVICE
+#define DATAFILE "/dev/aesdchar"
+#else
 #define DATAFILE "/var/tmp/aesdsocketdata"
+#endif
+
 #define BACKLOG 10
 
 static volatile sig_atomic_t exit_requested = 0;
@@ -143,7 +153,7 @@ static int daemonize(void)
 
 static int append_to_file(const char *buf, size_t len)
 {
-    int fd = open(DATAFILE, O_WRONLY | O_CREAT | O_APPEND, 0644);
+    int fd = open(DATAFILE, O_WRONLY | O_CREAT | O_APPEND, 0666);
     if (fd < 0) return -1;
 
     size_t written = 0;
@@ -270,8 +280,11 @@ out:
     return NULL;
 }
 
+
 static void *timestamp_thread(void *arg)
 {
+//remove timestamp printing
+#ifndef USE_AESD_CHAR_DEVICE
     (void)arg;
 
     while (!exit_requested) {
@@ -298,8 +311,10 @@ static void *timestamp_thread(void *arg)
         pthread_mutex_unlock(&file_mutex);
     }
 
+#endif
     return NULL;
 }
+
 
 /* Join and free any completed threads (non-blocking) */
 static void reap_completed_threads(void)
@@ -434,8 +449,11 @@ int main(int argc, char *argv[])
 
     pthread_mutex_destroy(&file_mutex);
 
+//retain "/dev/aesdchar" link
+#ifndef USE_AESD_CHAR_DEVICE
     // Keep previous assignment behavior (usually required)
     unlink(DATAFILE);
+#endif
 
     closelog();
     return 0;
