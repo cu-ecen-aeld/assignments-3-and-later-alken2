@@ -19,10 +19,12 @@
 #include <linux/fs.h> // file_operations
 #include "aesd-circular-buffer.h"
 #include "aesdchar.h"
+#include "aesd_ioctl.h"
 #include <linux/string.h> 
 #include <linux/mutex.h>
 #include <linux/slab.h> 
 #include <linux/uaccess.h>
+#include <sys/types.h>
 int aesd_major =   0; // use dynamic major
 int aesd_minor =   0;
 
@@ -152,12 +154,68 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 
     return retval;
 }
+
+static loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
+{
+    struct aesd_dev *dev_ptr = filp->private_data;
+
+    if (mutex_lock_interruptible(&dev_ptr->mtx))
+    {
+        return -ERESTARTSYS;
+    }
+
+    struct aesd_buffer_entry entry
+    loff_t new_pos = 0;
+    loff_t total_size = 0;
+    uint8_t index;
+
+    AESD_CIRCULAR_BUFFER_FOREACH(*entry, &dev_ptr->circular_buffer, index)
+    {
+        if (entry.buffptr != NULL)
+        {
+            total_size += entry.size
+        }
+    }
+
+    switch (whence) 
+    {
+        case SEEK_CUR:
+            new_pos = filp->f_pos + offset;
+            break;
+        case SEEK_SET:
+            new_pos = offset;
+            break;
+        case SEEK_END:
+            new_pos = total_size;
+            break;
+        default:
+            return -EINVAL;
+    }
+
+    mutex_unlock(&dev_ptr->mtx);
+
+    if (new_pos > total_size || new_pos < 0)
+    {
+        return -EINVAL;
+    }
+
+    filp->f_pos = new_pos;
+    return new_pos;
+}
+
+static long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    return 0;
+}
+
 struct file_operations aesd_fops = {
     .owner =    THIS_MODULE,
     .read =     aesd_read,
     .write =    aesd_write,
     .open =     aesd_open,
     .release =  aesd_release,
+    .llseek =   aesd_llseek,
+    .ioctl =    aesd_ioctl
 };
 
 static int aesd_setup_cdev(struct aesd_dev *dev)
